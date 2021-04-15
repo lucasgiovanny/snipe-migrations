@@ -42,7 +42,7 @@ class Snipe
      */
     protected function databaseFileChanges()
     {
-        if (! SnipeDatabaseState::$checkedForDatabaseFileChanges) {
+        if (!SnipeDatabaseState::$checkedForDatabaseFileChanges) {
             $timeSum = config('snipe.seed-database', false)
                 ? $this->migrationFileTimeSum() + $this->seederFileTimeSum()
                 : $this->migrationFileTimeSum();
@@ -101,7 +101,7 @@ class Snipe
      */
     protected function seederFileTimeSum()
     {
-        return collect([database_path('seeds')])
+        return collect([$this->getSeederPath()])
             ->map(function ($path) {
                 return collect(File::allFiles($path))
                     ->sum(function ($file) {
@@ -119,7 +119,7 @@ class Snipe
      */
     protected function databaseFilesHaveChanged($timeSum): bool
     {
-        if (! file_exists(config('snipe.snapshot-location'))) {
+        if (!file_exists(config('snipe.snapshot-location'))) {
             return true;
         }
 
@@ -135,13 +135,25 @@ class Snipe
      */
     protected function importDatabase()
     {
-        if (! SnipeDatabaseState::$importedDatabase) {
+        if (!SnipeDatabaseState::$importedDatabase) {
             $dumpfile = config('snipe.snapshot-location');
 
             $this->execute('mysql', "-h {$this->getDbHost()} -u {$this->getDbUsername()} --password={$this->getDbPassword()} {$this->getDbName()} < {$dumpfile} 2>/dev/null");
 
             SnipeDatabaseState::$importedDatabase = true;
         }
+    }
+
+    /**
+     * Get the seeder folder path.
+     *
+     * @return string
+     */
+    protected function getSeederPath(): string
+    {
+        $path = database_path('seeds');
+
+        return is_dir($path) ? $path : database_path('seeders');
     }
 
     /**
